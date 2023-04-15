@@ -39,7 +39,7 @@ public:
     // Subscribe image
     rclcpp::QoS qos(rclcpp::KeepLast(10));
     sub_ = create_subscription<Image>(
-        "/camera/image_raw", qos,
+        "/image", qos,
         std::bind(&ImageGrabber::GrabImage, this, std::placeholders::_1));
   }
 
