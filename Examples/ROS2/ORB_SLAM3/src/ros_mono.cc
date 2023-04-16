@@ -20,47 +20,51 @@
  */
 
 #include "../../../include/System.h"
-#include <algorithm>
-#include <chrono>
-#include <cv_bridge/cv_bridge.h>
-#include <fstream>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <iostream>
+
 #include <opencv2/core/core.hpp>
 #include <rclcpp/rclcpp.hpp>
+
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <sensor_msgs/msg/image.hpp>
+
+#include <cv_bridge/cv_bridge.h>
+
+#include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 using Image = sensor_msgs::msg::Image;
 
-class ImageGrabber : public rclcpp::Node {
+class ImageGrabber : public rclcpp::Node
+{
 public:
-  ImageGrabber(const std::string &node_name, ORB_SLAM3::System *pSLAM)
-      : Node(node_name), mpSLAM(pSLAM) {
+  ImageGrabber(const std::string & node_name, ORB_SLAM3::System * pSLAM)
+  : Node(node_name), mpSLAM(pSLAM)
+  {
     // Subscribe image
     rclcpp::QoS qos(rclcpp::KeepLast(10));
     sub_ = create_subscription<Image>(
-        "/image", qos,
-        std::bind(&ImageGrabber::GrabImage, this, std::placeholders::_1));
+      "/image", qos, std::bind(&ImageGrabber::GrabImage, this, std::placeholders::_1));
 
     // Publish pose
-    pose_pub_ =
-        this->create_publisher<geometry_msgs::msg::PoseStamped>("/pose", 10);
+    pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/pose", 10);
   }
 
-  void GrabImage(const Image::ConstSharedPtr &msg) {
+  void GrabImage(const Image::ConstSharedPtr & msg)
+  {
     // Copy the rclcpp image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptr;
     try {
       cv_ptr = cv_bridge::toCvShare(msg);
-    } catch (cv_bridge::Exception &e) {
+    } catch (cv_bridge::Exception & e) {
       // ROS_ERROR("cv_bridge exception: %s", e.what());
       return;
     }
 
-    const double sec =
-        cv_ptr->header.stamp.sec + cv_ptr->header.stamp.nanosec * 1e-9;
+    const double sec = cv_ptr->header.stamp.sec + cv_ptr->header.stamp.nanosec * 1e-9;
     const Sophus::SE3f pose = mpSLAM->TrackMonocular(cv_ptr->image, sec);
     const Eigen::Quaternionf q(pose.rotationMatrix());
     geometry_msgs::msg::Pose result;
@@ -74,8 +78,9 @@ public:
     publish_pose(msg->header.stamp, result);
   }
 
-  void publish_pose(const rclcpp::Time &sensor_ros_time,
-                    const geometry_msgs::msg::Pose &result_pose_msg) {
+  void publish_pose(
+    const rclcpp::Time & sensor_ros_time, const geometry_msgs::msg::Pose & result_pose_msg)
+  {
     geometry_msgs::msg::PoseStamped result_pose_stamped_msg;
     result_pose_stamped_msg.header.stamp = sensor_ros_time;
     result_pose_stamped_msg.header.frame_id = map_frame_;
@@ -86,18 +91,18 @@ public:
   const std::string map_frame_ = "map";
   rclcpp::Subscription<Image>::SharedPtr sub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
-  ORB_SLAM3::System *mpSLAM;
+  ORB_SLAM3::System * mpSLAM;
 };
 
-int main(int argc, char **argv) {
+int main(int argc, char ** argv)
+{
   rclcpp::init(argc, argv);
 
   // Create SLAM system. It initializes all system threads and gets ready to
   // process frames.
   ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, true);
 
-  std::shared_ptr<ImageGrabber> igb =
-      std::make_shared<ImageGrabber>("Mono", &SLAM);
+  std::shared_ptr<ImageGrabber> igb = std::make_shared<ImageGrabber>("Mono", &SLAM);
 
   rclcpp::spin(igb);
 
