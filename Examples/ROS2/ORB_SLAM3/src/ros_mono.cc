@@ -24,6 +24,8 @@
 #include <chrono>
 #include <cv_bridge/cv_bridge.h>
 #include <fstream>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <iostream>
 #include <opencv2/core/core.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -41,6 +43,10 @@ public:
     sub_ = create_subscription<Image>(
         "/image", qos,
         std::bind(&ImageGrabber::GrabImage, this, std::placeholders::_1));
+
+    // Publish pose
+    pose_pub_ =
+        this->create_publisher<geometry_msgs::msg::PoseStamped>("/pose", 10);
   }
 
   void GrabImage(const Image::ConstSharedPtr &msg) {
@@ -55,10 +61,31 @@ public:
 
     const double sec =
         cv_ptr->header.stamp.sec + cv_ptr->header.stamp.nanosec * 1e-9;
-    mpSLAM->TrackMonocular(cv_ptr->image, sec);
+    const Sophus::SE3f pose = mpSLAM->TrackMonocular(cv_ptr->image, sec);
+    const Eigen::Quaternionf q(pose.rotationMatrix());
+    geometry_msgs::msg::Pose result;
+    result.position.x = pose.translation()[0];
+    result.position.y = pose.translation()[1];
+    result.position.z = pose.translation()[2];
+    result.orientation.x = q.x();
+    result.orientation.y = q.y();
+    result.orientation.z = q.z();
+    result.orientation.w = q.w();
+    publish_pose(msg->header.stamp, msg->header.frame_id, result);
+  }
+
+  void publish_pose(const rclcpp::Time &sensor_ros_time,
+                    const std::string &frame_id,
+                    const geometry_msgs::msg::Pose &result_pose_msg) {
+    geometry_msgs::msg::PoseStamped result_pose_stamped_msg;
+    result_pose_stamped_msg.header.stamp = sensor_ros_time;
+    result_pose_stamped_msg.header.frame_id = frame_id;
+    result_pose_stamped_msg.pose = result_pose_msg;
+    pose_pub_->publish(result_pose_stamped_msg);
   }
 
   rclcpp::Subscription<Image>::SharedPtr sub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   ORB_SLAM3::System *mpSLAM;
 };
 
