@@ -36,8 +36,8 @@ using Image = sensor_msgs::msg::Image;
 
 class ImageGrabber : public rclcpp::Node {
 public:
-  ImageGrabber(const std::string &topic_name, ORB_SLAM3::System *pSLAM)
-      : Node(topic_name), mpSLAM(pSLAM) {
+  ImageGrabber(const std::string &node_name, ORB_SLAM3::System *pSLAM)
+      : Node(node_name), mpSLAM(pSLAM) {
     // Subscribe image
     rclcpp::QoS qos(rclcpp::KeepLast(10));
     sub_ = create_subscription<Image>(
