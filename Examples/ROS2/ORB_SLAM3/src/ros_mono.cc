@@ -71,19 +71,19 @@ public:
     result.orientation.y = q.y();
     result.orientation.z = q.z();
     result.orientation.w = q.w();
-    publish_pose(msg->header.stamp, msg->header.frame_id, result);
+    publish_pose(msg->header.stamp, result);
   }
 
   void publish_pose(const rclcpp::Time &sensor_ros_time,
-                    const std::string &frame_id,
                     const geometry_msgs::msg::Pose &result_pose_msg) {
     geometry_msgs::msg::PoseStamped result_pose_stamped_msg;
     result_pose_stamped_msg.header.stamp = sensor_ros_time;
-    result_pose_stamped_msg.header.frame_id = frame_id;
+    result_pose_stamped_msg.header.frame_id = map_frame_;
     result_pose_stamped_msg.pose = result_pose_msg;
     pose_pub_->publish(result_pose_stamped_msg);
   }
 
+  const std::string map_frame_ = "map";
   rclcpp::Subscription<Image>::SharedPtr sub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
   ORB_SLAM3::System *mpSLAM;
