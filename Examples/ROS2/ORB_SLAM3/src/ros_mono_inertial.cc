@@ -77,21 +77,23 @@ public:
     const double time_of_image = get_sec(cv_ptr->header);
 
     // Load imu measurements from buffer
-    vector<ORB_SLAM3::IMU::Point> vImuMeas;
     mBufMutex.lock();
-    if (imuBuf.empty() || time_of_image > get_sec(imuBuf.back()->header)) {
+    // if (imuBuf.empty() || time_of_image > get_sec(imuBuf.back()->header)) {
+    //   mBufMutex.unlock();
+    //   return;
+    // }
+    if (imuBuf.empty()) {
       mBufMutex.unlock();
       return;
     }
-    vImuMeas.clear();
-    while (!imuBuf.empty() && get_sec(imuBuf.front()->header) <= time_of_image) {
-      double t = get_sec(imuBuf.front()->header);
-      cv::Point3f acc(
-        imuBuf.front()->linear_acceleration.x, imuBuf.front()->linear_acceleration.y,
-        imuBuf.front()->linear_acceleration.z);
-      cv::Point3f gyr(
-        imuBuf.front()->angular_velocity.x, imuBuf.front()->angular_velocity.y,
-        imuBuf.front()->angular_velocity.z);
+    vector<ORB_SLAM3::IMU::Point> vImuMeas;
+    while (!imuBuf.empty()) {
+      const Imu::ConstSharedPtr imu = imuBuf.front();
+      const cv::Point3f acc(
+        imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z);
+      const cv::Point3f gyr(
+        imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z);
+      const double t = get_sec(imu->header);
       vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc, gyr, t));
       imuBuf.pop();
     }
