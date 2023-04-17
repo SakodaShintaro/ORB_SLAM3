@@ -38,22 +38,22 @@
 using namespace std;
 using Image = sensor_msgs::msg::Image;
 
-class ImageGrabber : public rclcpp::Node
+class MonoNode : public rclcpp::Node
 {
 public:
-  ImageGrabber(const std::string & node_name, ORB_SLAM3::System * pSLAM)
+  MonoNode(const std::string & node_name, ORB_SLAM3::System * pSLAM)
   : Node(node_name), mpSLAM(pSLAM)
   {
     // Subscribe image
     rclcpp::QoS qos(rclcpp::KeepLast(10));
     sub_ = create_subscription<Image>(
-      "/image", qos, std::bind(&ImageGrabber::GrabImage, this, std::placeholders::_1));
+      "/image", qos, std::bind(&MonoNode::callback_image, this, std::placeholders::_1));
 
     // Publish pose
     pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/pose", 10);
   }
 
-  void GrabImage(const Image::ConstSharedPtr & msg)
+  void callback_image(const Image::ConstSharedPtr & msg)
   {
     // Copy the rclcpp image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptr;
@@ -64,8 +64,11 @@ public:
       return;
     }
 
+    // Exec SLAM
     const double sec = cv_ptr->header.stamp.sec + cv_ptr->header.stamp.nanosec * 1e-9;
     const Sophus::SE3f pose = mpSLAM->TrackMonocular(cv_ptr->image, sec);
+
+    // Publish pose
     const Eigen::Quaternionf q(pose.rotationMatrix());
     geometry_msgs::msg::Pose result;
     result.position.x = pose.translation()[0];
@@ -102,9 +105,9 @@ int main(int argc, char ** argv)
   // process frames.
   ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, true);
 
-  std::shared_ptr<ImageGrabber> igb = std::make_shared<ImageGrabber>("Mono", &SLAM);
+  std::shared_ptr<MonoNode> node = std::make_shared<MonoNode>("Mono", &SLAM);
 
-  rclcpp::spin(igb);
+  rclcpp::spin(node);
 
   // Stop all threads
   SLAM.Shutdown();
