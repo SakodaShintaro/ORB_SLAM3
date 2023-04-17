@@ -6,6 +6,11 @@ set -eux
 DIR_NAME=$(readlink -f $(dirname $0))
 cd $DIR_NAME
 
+# install system
+set +u
+source ./install/setup.bash
+set -u
+
 # setting up environment variables
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:../../lib:../../../Pangolin/build/"
 
