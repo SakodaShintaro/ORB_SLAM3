@@ -10,6 +10,6 @@ cd $DIR_NAME
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:../../lib:../../../Pangolin/build/"
 
 # run ORB_SLAM3_ROS2
-ros2 run ORB_SLAM3_ROS2 Mono \
+ros2 run ORB_SLAM3_ROS2 MonoInertial \
     ../../Vocabulary/ORBvoc.txt \
-    ./config.yaml
+    ./config_mono_inertial.yaml

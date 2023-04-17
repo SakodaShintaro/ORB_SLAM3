@@ -42,16 +42,15 @@ ${PROJECT_SOURCE_DIR}/../../../lib/libORB_SLAM3.so
 )
 
 # Node for monocular camera
-add_executable(Mono
-src/ros_mono.cc
-)
-
+add_executable(Mono src/ros_mono.cc)
 ament_target_dependencies(Mono "rclcpp" "cv_bridge")
-
-target_link_libraries(Mono
-${LIBS}
-)
-
+target_link_libraries(Mono ${LIBS})
 install(TARGETS Mono DESTINATION lib/${PROJECT_NAME})
+
+# Node for monocular camera inertial
+add_executable(MonoInertial src/ros_mono_inertial.cc)
+ament_target_dependencies(MonoInertial "rclcpp" "cv_bridge")
+target_link_libraries(MonoInertial ${LIBS})
+install(TARGETS MonoInertial DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
