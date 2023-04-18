@@ -82,7 +82,7 @@ public:
     //   mBufMutex.unlock();
     //   return;
     // }
-    if (imuBuf.empty()) {
+    if (imuBuf.size() <= 1) {
       mBufMutex.unlock();
       return;
     }
